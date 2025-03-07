@@ -13,4 +13,5 @@
 # limitations under the License.
 
 from .naive import NaiveRewardManager
+from .custom import CustomRewardManager
 from .prime import PrimeRewardManager
