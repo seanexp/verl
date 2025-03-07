@@ -133,6 +133,9 @@ def main_task(config):
     if reward_manager_name == 'naive':
         from verl.workers.reward_manager import NaiveRewardManager
         reward_manager_cls = NaiveRewardManager
+    elif reward_manager_name == "custom":
+        from verl.workers.reward_manager import CustomRewardManager
+        reward_manager_cls = CustomRewardManager
     elif reward_manager_name == 'prime':
         from verl.workers.reward_manager import PrimeRewardManager
         reward_manager_cls = PrimeRewardManager
