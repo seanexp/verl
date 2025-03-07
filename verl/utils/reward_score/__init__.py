@@ -45,7 +45,10 @@ def _default_compute_score(data_source, solution_str, ground_truth, extra_info=N
 def _custom_compute_score(data_source, prompt_str, response_str, ground_truth, extra_info=None) -> float:
     if data_source == "kakaocorp/realchat-v1.2-p1":
         from . import generative_rm
-        res = generative_rm.compute_score(prompt_str, response_str)
+
+        base_url = "http://instance-24179.prj-875:8000/v1"
+        judge_model_name = "Qwen2.5-72B-Instruct"
+        res = generative_rm.compute_score(prompt_str, response_str, base_url, judge_model_name)
     else:
         raise ValueError
 
