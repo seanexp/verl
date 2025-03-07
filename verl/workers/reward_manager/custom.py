@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from verl import DataProto
-from verl.utils.reward_score import _default_compute_score
+from verl.utils.reward_score import _custom_compute_score
 import torch
 
 
@@ -24,7 +24,7 @@ class CustomRewardManager:
     def __init__(self, tokenizer, num_examine, compute_score=None) -> None:
         self.tokenizer = tokenizer
         self.num_examine = num_examine  # the number of batches of decoded responses to print to the console
-        self.compute_score = compute_score or _default_compute_score
+        self.compute_score = compute_score or _custom_compute_score
 
     def __call__(self, data: DataProto):
         """We will expand this function gradually based on the available datasets"""
@@ -63,7 +63,8 @@ class CustomRewardManager:
 
             score = self.compute_score(
                 data_source=data_source,
-                solution_str=response_str,
+                prompt_str=prompt_str,
+                response_str=response_str,
                 ground_truth=ground_truth,
                 extra_info=extra_info,
             )
