@@ -17,7 +17,7 @@ dataset = dataset.add_column("ability", ["chat" for _ in range(len(dataset))])
 dataset = dataset.add_column("reward_model", [{"ground_truth": None, "style": "model"} for _ in range(len(dataset))])
 
 
-dataset = dataset.train_test_split(test_size=0.05, shuffle=True)
+dataset = dataset.train_test_split(test_size=0.01, shuffle=True)
 train_dataset = dataset["train"]
 test_dataset = dataset["test"]
 
