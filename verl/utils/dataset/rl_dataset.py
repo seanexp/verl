@@ -17,7 +17,9 @@ import os
 from typing import List, Union, Optional
 import copy
 import pandas as pd
+import multiprocessing
 from collections import defaultdict
+from functools import partial
 
 import torch
 import numpy as np
@@ -70,6 +72,9 @@ def process_image(image: dict, max_pixels: int = 2048 * 2048, min_pixels: int = 
         image = image.convert('RGB')
 
     return image
+
+def is_too_long_prompt(prompt: str, tokenizer, max_prompt_length: int):
+    return len(tokenizer.apply_chat_template(prompt, add_generation_prompt=True)) > max_prompt_length
 
 
 class RLHFDataset(Dataset):
@@ -135,9 +140,13 @@ class RLHFDataset(Dataset):
         if self.filter_overlong_prompts:
             tokenizer = self.tokenizer
             prompt_key = self.prompt_key
-            self.dataframe = self.dataframe[self.dataframe.apply(lambda doc: len(
-                tokenizer.apply_chat_template(doc[prompt_key], add_generation_prompt=True)) <= self.max_prompt_length,
-                                                                 axis=1)]
+
+            is_too_long_prompt_local = partial(is_too_long_prompt, tokenizer=tokenizer, max_prompt_length=self.max_prompt_length)
+
+            with multiprocessing.Pool(min(multiprocessing.cpu_count(), 16)) as p:
+                too_long_prompt = p.map(is_too_long_prompt_local, self.dataframe[prompt_key].tolist())
+
+            self.dataframe = self.dataframe[~np.array(too_long_prompt)]
 
             print(f'filter dataset len: {len(self.dataframe)}')
 
