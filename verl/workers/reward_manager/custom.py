@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List, Dict
+
+import torch
+from pqdm.processes import pqdm
+
 from verl import DataProto
 from verl.utils.reward_score import _custom_compute_score
-import torch
 
 
 class CustomRewardManager:
@@ -37,6 +41,8 @@ class CustomRewardManager:
 
         already_print_data_sources = {}
 
+        function_arguments: List[Dict] = []
+        valid_response_lengths: List[int] = []
         for i in range(len(data)):
             data_item = data[i]  # DataProtoItem
 
@@ -61,13 +67,25 @@ class CustomRewardManager:
 
             extra_info = data_item.non_tensor_batch.get('extra_info', None)
 
-            score = self.compute_score(
-                data_source=data_source,
-                prompt_str=prompt_str,
-                response_str=response_str,
-                ground_truth=ground_truth,
-                extra_info=extra_info,
+            function_arguments.append(
+                {
+                    "data_source": data_source,
+                    "prompt_str": prompt_str,
+                    "response_str": response_str,
+                    "ground_truth": ground_truth,
+                    "extra_info": extra_info,
+                }
             )
+            valid_response_lengths.append(valid_response_length)
+
+        scores = pqdm(function_arguments, self.compute_score, n_jobs=8, argument_type='kwargs')
+        for func_args, score, valid_response_length in zip(function_arguments, scores, valid_response_lengths):
+            data_source = func_args["data_source"]
+            prompt_str = func_args["prompt_str"]
+            response_str = func_args["response_str"]
+            ground_truth = func_args["ground_truth"]
+            extra_info = func_args["extra_info"]
+
             reward_tensor[i, valid_response_length - 1] = score
 
             if data_source not in already_print_data_sources:
