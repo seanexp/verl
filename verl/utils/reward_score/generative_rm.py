@@ -50,7 +50,7 @@ def get_judgement(prompt: str, response: str, base_url: Optional[str] = None, ju
         answer=response,
     )
  
-    client = openai.OpenAI(base_url=base_url)
+    client = openai.OpenAI(base_url=base_url, api_key="EMPTY")
  
     kwargs = {
         "temperature": 0.7,
