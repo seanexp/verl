@@ -8,11 +8,8 @@ import openai
 
 NULL_COMPLETION = "EMPTY"
 
-HELPFULNESS_PATTERN = re.compile(r"Helpfulness Rating: \[\[(\d+\.?\d*)]]")
-RELEVANCE_PATTERN = re.compile(r"Relevance Rating: \[\[(\d+\.?\d*)]]")
-DEPTH_PATTERN = re.compile(r"Depth Rating: \[\[(\d+\.?\d*)]]")
-CREATIVITY_PATTERN = re.compile(r"Creativity Rating: \[\[(\d+\.?\d*)]]")
-LEVEL_OF_DETAILS_PATTERN = re.compile(r"Level of Details Rating: \[\[(\d+\.?\d*)]]")
+ONE_SCORE_PATTERN = re.compile(r"\[\[(\d+\.?\d*)]]")
+ONE_SCORE_PATTERN_BACKUP = re.compile(r"\[(\d+\.?\d*)]")
 
 
 JUDGE_SYSTEM_PROMPT = "You are a helpful assistant."
@@ -20,21 +17,8 @@ JUDGE_META_PROMPT = """
 [Instruction]
 Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question displayed below.
 Your evaluation should consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and level of detail of the response.
-Begin your evaluation by providing a short explanation.
-Be as objective as possible.
-After providing your explanation, you must rate every attribute of the response on a scale of 1 to 10 by strictly following this format: 
-\"Helpfulness Rating: [[helpfulness_rating]]\"
-\"Relevance Rating: [[relevance_rating]]\"
-\"Depth Rating: [[depth_rating]]\"
-\"Creativity Rating: [[creativity_rating]]\"
-\"Level of Details Rating: [[level_of_details_rating]]\",
-
-for example:
-\"Helpfulness Rating: [[8]]\"
-\"Relevance Rating: [[7]]\"
-\"Depth Rating: [[4]]\"
-\"Creativity Rating: [[3]]\"
-\"Level of Details Rating: [[5]]\",
+Begin your evaluation by providing a short explanation. Be as objective as possible.
+After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: \"[[rating]]\", for example: \"Rating: [[5]]\".
 
 [Question]
 {question}
@@ -83,13 +67,15 @@ def get_judgement(prompt: str, response: str, base_url: Optional[str] = None, ju
         return NULL_COMPLETION
 
 
-def _parse_judgement(judgement: str, pattern) -> int:
-    match = re.search(pattern, judgement)
+def _parse_judgement(judgement: str) -> int:
+    match = re.search(ONE_SCORE_PATTERN, judgement)
+    if not match:
+        match = re.search(ONE_SCORE_PATTERN_BACKUP, judgement)
     if match:
         rating = ast.literal_eval(match.groups()[0])
     else:
         rating = -1
- 
+
     return rating
 
 
@@ -108,15 +94,9 @@ def compute_score(
 
     judgement = get_judgement(prompt_str, response_str, base_url, judge_model_name)
 
-    helpfulness_score = _parse_judgement(judgement, HELPFULNESS_PATTERN)
-    relevance_score = _parse_judgement(judgement, RELEVANCE_PATTERN)
-    depth_score = _parse_judgement(judgement, DEPTH_PATTERN)
-    creativity_score = _parse_judgement(judgement, CREATIVITY_PATTERN)
-    level_of_details_score = _parse_judgement(judgement, LEVEL_OF_DETAILS_PATTERN)
+    score = _parse_judgement(judgement)
 
-    score = helpfulness_score + relevance_score + depth_score + creativity_score + level_of_details_score
-
-    return float(score)
+    return float(score) / 10
 
 
 if __name__ == "__main__":
