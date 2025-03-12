@@ -79,7 +79,8 @@ class CustomRewardManager:
             valid_response_lengths.append(valid_response_length)
 
         scores = pqdm(function_arguments, self.compute_score, n_jobs=8, argument_type='kwargs')
-        for func_args, score, valid_response_length in zip(function_arguments, scores, valid_response_lengths):
+        # scores = [self.compute_score(**argument) for argument in function_arguments]
+        for i, (func_args, score, valid_response_length) in enumerate(zip(function_arguments, scores, valid_response_lengths)):
             data_source = func_args["data_source"]
             prompt_str = func_args["prompt_str"]
             response_str = func_args["response_str"]
