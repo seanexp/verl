@@ -8,15 +8,16 @@ import openai
 
 NULL_COMPLETION = "EMPTY"
 
-ONE_SCORE_PATTERN = re.compile(r"\[\[(\d+\.?\d*)]]")
-ONE_SCORE_PATTERN_BACKUP = re.compile(r"\[(\d+\.?\d*)]")
+ONE_SCORE_PATTERN = re.compile(r"rating: \[\[(\d+\.?\d*)]]")
+ONE_SCORE_PATTERN_BACKUP = re.compile(r"rating: \[(\d+\.?\d*)]")
 
 
 JUDGE_SYSTEM_PROMPT = "You are a helpful assistant."
 JUDGE_META_PROMPT = """
 [Instruction]
 Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question displayed below.
-Your evaluation should consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and level of detail of the response.
+If the question is related to reasoning, math or code, your evaluation should consider correctness and helpfulness.
+Otherwise, your evaluation should consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and level of detail of the response.
 Begin your evaluation by providing a short explanation. Be as objective as possible.
 After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: \"[[rating]]\", for example: \"Rating: [[5]]\".
 
@@ -71,9 +72,12 @@ def _parse_judgement(judgement: str) -> int:
     match = re.search(ONE_SCORE_PATTERN, judgement)
     if not match:
         match = re.search(ONE_SCORE_PATTERN_BACKUP, judgement)
-    if match:
-        rating = ast.literal_eval(match.groups()[0])
-    else:
+    try:
+        if match:
+            rating = ast.literal_eval(match.groups()[0])
+        else:
+            rating = -1
+    except Exception:
         rating = -1
 
     return rating
@@ -94,7 +98,7 @@ def compute_score(
 
     judgement = get_judgement(prompt_str, response_str, base_url, judge_model_name)
 
-    score = _parse_judgement(judgement)
+    score = _parse_judgement(judgement.lower())
 
     return float(score) / 10
 
