@@ -14,6 +14,9 @@
 # from . import gsm8k, math, prime_math, prime_code
 
 
+import random
+
+
 def _default_compute_score(data_source, solution_str, ground_truth, extra_info=None):
     if data_source == 'openai/gsm8k':
         from . import gsm8k
@@ -47,6 +50,21 @@ def _custom_compute_score(data_source, prompt_str, response_str, ground_truth, e
         from . import generative_rm
 
         base_url = "http://instance-24179.prj-875:8000/v1"
+        judge_model_name = "Qwen2.5-72B-Instruct"
+        res = generative_rm.compute_score(prompt_str, response_str, base_url, judge_model_name)
+    elif data_source.startswith("realchat") or data_source == "mt-bench":
+        from . import generative_rm
+
+        base_urls = [
+            "http://instance-24495.prj-875:8000/v1",
+            "http://instance-24496.prj-875:8000/v1",
+            "http://instance-24497.prj-875:8000/v1",
+            "http://instance-24498.prj-875:8000/v1",
+            "http://instance-24499.prj-875:8000/v1",
+        ]
+
+        # base_url = "http://instance-24179.prj-875:8000/v1"
+        base_url = random.choice(base_urls)
         judge_model_name = "Qwen2.5-72B-Instruct"
         res = generative_rm.compute_score(prompt_str, response_str, base_url, judge_model_name)
     else:

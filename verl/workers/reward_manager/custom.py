@@ -61,7 +61,8 @@ class CustomRewardManager:
             prompt_str = self.tokenizer.decode(valid_prompt_ids)
             response_str = self.tokenizer.decode(valid_response_ids)
 
-            ground_truth = data_item.non_tensor_batch['reward_model']['ground_truth']
+            # ground_truth = data_item.non_tensor_batch['reward_model']['ground_truth']
+            ground_truth = data_item.non_tensor_batch['reward_model'].get('ground_truth', None)
 
             data_source = data_item.non_tensor_batch['data_source']
 
