@@ -27,6 +27,7 @@ from verl.utils.fs import copy_to_local
 from verl.utils.fsdp_utils import init_fn, get_init_weight_context_manager
 from verl.utils.torch_functional import get_cosine_schedule_with_warmup
 from verl.utils.tracking import Tracking
+from verl.utils.optimizers import SOAP, Muon
 
 # logger = logging.getLogger(__file__)
 # logger.setLevel(os.getenv('VERL_SFT_LOGGING_LEVEL', 'WARN'))
@@ -212,10 +213,32 @@ class FSDPV2SFTTrainer:
 
         log_gpu_memory_usage('After FSDP wrapping', logger=logger)
 
-        self.optimizer = optim.AdamW(self.model.parameters(),
-                                     lr=self.config.optim.lr,
-                                     betas=self.config.optim.betas,
-                                     weight_decay=self.config.optim.weight_decay)
+        if self.config.optim.algorithm == "adamw":
+            self.optimizer = optim.AdamW(self.model.parameters(),
+                                         lr=self.config.optim.lr,
+                                         betas=self.config.optim.betas,
+                                         weight_decay=self.config.optim.weight_decay)
+        elif self.config.optim.algorithm == "soap":
+            self.optimizer = SOAP(self.model.parameters(),
+                                  lr=self.config.optim.lr,
+                                  betas=self.config.optim.betas,
+                                  weight_decay=self.config.optim.weight_decay)
+        elif self.config.optim.algorithm == "muon":
+
+            def is_muon_param(name, parameter):
+                return parameter.ndim >= 2 and "lm_head" not in name and "embed_tokens" not in name
+
+            muon_params = [p for n, p in self.model.named_parameters() if is_muon_param(n, p)]
+            adamw_params = [p for n, p in self.model.named_parameters() if not is_muon_param(n, p)]
+            self.optimizer = Muon(
+                muon_params,
+                lr=self.config.optim.lr,
+                momentum=self.config.optim.betas[0],
+                adamw_params=adamw_params,
+                adamw_lr=self.config.optim.lr,
+                adamw_betas=self.config.optim.betas,
+                adamw_wd=self.config.optim.weight_decay,
+            )
 
         log_gpu_memory_usage('After initialize optimizer', logger=logger)
 
