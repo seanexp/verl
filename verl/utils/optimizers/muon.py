@@ -78,13 +78,13 @@ class Muon(torch.optim.Optimizer):
         lr: The learning rate. The updates will have spectral norm of `lr`. (0.02 is a good default)
         momentum: The momentum used by the internal SGD. (0.95 is a good default)
         nesterov: Whether to use Nesterov-style momentum in the internal SGD. (recommended)
+        weight_decay: The weight decay for the internal AdamW.
         ns_steps: The number of Newton-Schulz iterations to run. (6 is probably always enough)
         adamw_params: The parameters to be optimized by AdamW. Any parameters in `muon_params` which are
         {0, 1}-D or are detected as being the embed or lm_head will be optimized by AdamW as well.
         adamw_lr: The learning rate for the internal AdamW.
         adamw_betas: The betas for the internal AdamW.
         adamw_eps: The epsilon for the internal AdamW.
-        adamw_wd: The weight decay for the internal AdamW.
     """
 
     def __init__(self,
@@ -92,21 +92,23 @@ class Muon(torch.optim.Optimizer):
                  lr=0.02,
                  momentum=0.95,
                  nesterov=True,
+                 weight_decay=0,
                  ns_steps=6,
                  adamw_params=None,
                  adamw_lr=3e-4,
                  adamw_betas=(0.95, 0.95),
-                 adamw_eps=1e-8,
-                 adamw_wd=0):
+                 adamw_eps=1e-8):
 
         defaults = dict(lr=lr,
                         momentum=momentum,
                         nesterov=nesterov,
+                        weight_decay=weight_decay,
                         ns_steps=ns_steps,
                         adamw_lr_ratio=adamw_lr / lr,
                         adamw_betas=adamw_betas,
-                        adamw_eps=adamw_eps,
-                        adamw_wd=adamw_wd)
+                        adamw_eps=adamw_eps)
+
+        assert weight_decay >= 0
 
         # handle list of params or list of dicts
         if isinstance(muon_params, Generator):
@@ -193,6 +195,7 @@ class Muon(torch.optim.Optimizer):
                     g *= max(1, g.size(0) / g.size(1))**0.5
 
                     g = g.view_as(p.data).type_as(p.data)
+                    p.data.mul_(1 - lr * group['weight_decay'])
                     p.data.add_(g, alpha=-lr)
                 else:
                     # these are all pointwise so we can stay in Dtensor
@@ -216,5 +219,5 @@ class Muon(torch.optim.Optimizer):
                     bias_correction1 = 1 - group['adamw_betas'][0]**step
                     bias_correction2 = 1 - group['adamw_betas'][1]**step
                     scale = bias_correction1 / bias_correction2**0.5
-                    p.data.mul_(1 - lr * group['adamw_wd'])
+                    p.data.mul_(1 - lr * group['weight_decay'])
                     p.data.add_(g, alpha=-lr / scale)

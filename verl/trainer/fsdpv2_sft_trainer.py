@@ -234,10 +234,10 @@ class FSDPV2SFTTrainer:
                 muon_params,
                 lr=self.config.optim.lr,
                 momentum=self.config.optim.betas[0],
+                weight_decay=self.config.optim.weight_decay,
                 adamw_params=adamw_params,
                 adamw_lr=self.config.optim.lr,
                 adamw_betas=self.config.optim.betas,
-                adamw_wd=self.config.optim.weight_decay,
             )
 
         log_gpu_memory_usage('After initialize optimizer', logger=logger)
