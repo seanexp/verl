@@ -14,7 +14,6 @@ from torch.distributed.fsdp import fully_shard, MixedPrecisionPolicy, OffloadPol
 from torch.utils.data import DataLoader, DistributedSampler
 from torch.distributed.tensor import DTensor
 from torch.distributed.device_mesh import DeviceMesh
-from torch.distributed._tensor.experimental import implicit_replication
 from tensordict import TensorDict
 from transformers import AutoModelForCausalLM, PreTrainedModel, AutoConfig
 from tqdm import tqdm
@@ -442,6 +441,7 @@ def main(config):
         device_mesh=device_mesh,
     )
     trainer.fit()
+    torch.distributed.destroy_process_group()
 
 
 if __name__ == "__main__":
